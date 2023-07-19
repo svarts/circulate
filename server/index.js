@@ -8,6 +8,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import path from "path";
 import { fileURLToPath  } from "url";
+import { register } from "/controllers/auth.js";
 
 /* configurations */
 const __filename = fileURLToPath(import.meta.url);
@@ -16,14 +17,36 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(helmet());
-app.use(helmet.crossOriginEmbedderPolicy({ policy:"cross-origin" }));
+//app.use(helmet.crossOriginEmbedderPolicy({ policy:"cross-origin" }));
 app.use(morgan("common"));
 app.use(bodyParser.json({ limit: "30mb", extended: true }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true}));
 app.use(cors());
 app.use("/assets", express.static(path.join(__dirmname, 'public/assests'))); //settig the directory of where we keep our assets in
 
-/* file storage */ 
+/* file storage (this is how you can save your files)*/ 
 const storage = multer.diskStorage({
-    
+    destination: function (req, file, cb){
+        cb(null, "public/assets");
+    },
+    filename: function (req, file, cb){
+        cb(null, file.originalname);
+    }
+});
+
+const upload = multer ({ storage }); 
+
+/* Routes with files */
+app.post("/auth/register", upload.single("picture"), register);
+
+/* mongoose setup */
+
+const PORT = process.env.PORT || 6001;
+mongoose.connect(process.env.MONGO_URL, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
 })
+.then(() => {
+    app.listen(PORT, () => console.log(`Server port: ${PORT}`));
+})
+.catch((err) => console.log(`${err} did not connect`))
